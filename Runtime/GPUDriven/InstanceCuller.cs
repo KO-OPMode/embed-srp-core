@@ -19,6 +19,17 @@ using UnityEditor.SceneManagement;
 
 namespace UnityEngine.Rendering
 {
+    // ys custom start
+    /// <summary>
+    /// Custom static class for passing quality data into the instance culler,
+    /// in the same way that it already reads from QualitySetttings
+    /// </summary>
+    public static class CustomMeshLodSettings
+    {
+        public static float GlobalMeshLodBias { get; set; }
+    }
+    // ys custom end
+    
     internal struct RangeKey : IEquatable<RangeKey>
     {
         public byte layer;
@@ -199,6 +210,12 @@ namespace UnityEngine.Rendering
         [ReadOnly] public BatchCullingViewType viewType;
         [ReadOnly] public float3 cameraPosition;
         [ReadOnly] public float sqrMeshLodSelectionConstant;
+        
+        // ys custom start
+        // Pass in our custom mesh LOD biases
+        [ReadOnly] public float globalMeshLodBias;
+        // ys custom end
+        
         [ReadOnly] public float sqrScreenRelativeMetric;
         [ReadOnly] public float minScreenRelativeHeight;
         [ReadOnly] public bool isOrtho;
@@ -422,6 +439,11 @@ namespace UnityEngine.Rendering
             // We apply Bias after max to enforce that a positive bias of +N we would select lodN instead of Lod0
             levelIndexFlt = math.max(levelIndexFlt, 0);
             levelIndexFlt += meshLodData.lodSelectionBias;
+            
+            // ys custom start
+            levelIndexFlt += globalMeshLodBias;
+            // add our additional biases
+            // ys custom end
 
             levelIndexFlt = math.clamp(levelIndexFlt, 0, meshLodInfo.levelCount - 1);
 
@@ -1859,11 +1881,21 @@ namespace UnityEngine.Rendering
             FrustumPlaneCuller frustumPlaneCuller;
             float screenRelativeMetric;
             float meshLodConstant;
+            
+            // ys custom start
+            // Add hooks for additiona LOD bias sources
+            float globalMeshLodBias;
+            // ys custom end
 
             fixed (BatchCullingContext* contextPtr = &cc)
             {
                 InstanceCullerBurst.SetupCullingJobInput(QualitySettings.lodBias, QualitySettings.meshLodThreshold, contextPtr, &receiverPlanes, &receiverSphereCuller,
                                                          &frustumPlaneCuller, &screenRelativeMetric, &meshLodConstant);
+
+                // ys custom start
+                // Assign our bias based on our quality settings & a tunable static value
+                globalMeshLodBias = CustomMeshLodSettings.GlobalMeshLodBias;
+                // ys custom end
             }
 
             if (occlusionCullingCommon != null)
@@ -1883,6 +1915,9 @@ namespace UnityEngine.Rendering
                 cullLightmappedShadowCasters = (cc.cullingFlags & BatchCullingFlags.CullLightmappedShadowCasters) != 0,
                 cameraPosition = cc.lodParameters.cameraPosition,
                 sqrMeshLodSelectionConstant = meshLodConstant * meshLodConstant,
+                // ys custom start
+                globalMeshLodBias = globalMeshLodBias,
+                // ys custom end
                 sqrScreenRelativeMetric = screenRelativeMetric * screenRelativeMetric,
                 minScreenRelativeHeight = smallMeshScreenPercentage * 0.01f,
                 isOrtho = cc.lodParameters.isOrthographic,
