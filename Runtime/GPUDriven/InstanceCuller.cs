@@ -27,6 +27,7 @@ namespace UnityEngine.Rendering
     public static class CustomMeshLodSettings
     {
         public static float GlobalMeshLodBias { get; set; }
+        public static bool ForceDisableCrossFade { get; set; }
     }
     // ys custom end
     
@@ -2000,7 +2001,7 @@ namespace UnityEngine.Rendering
             var binningConfig = new BinningConfig
             {
                 viewCount = cc.cullingSplits.Length,
-                supportsCrossFade = QualitySettings.enableLODCrossFade,
+                supportsCrossFade = QualitySettings.enableLODCrossFade && !CustomMeshLodSettings.ForceDisableCrossFade,
                 supportsMotionCheck = (cc.viewType == BatchCullingViewType.Camera), // TODO: could disable here if RP never needs object motion vectors, for now always batch on it
             };
 
